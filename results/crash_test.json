@@ -1,0 +1,7 @@
+{
+  "durability": "Group",
+  "rounds": 10,
+  "acked_orders": 43808,
+  "lost_acked_orders": 0,
+  "rounds_with_torn_tail_repaired": 0
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "Engine only (matching)",
+    "Count": 1000000,
+    "OpsPerSecond": 476367.299195106,
+    "P50": 0.292,
+    "P99": 2.166,
+    "P999": 6.042,
+    "Max": 153025.209
+  },
+  {
+    "Name": "End to end, durability = None",
+    "Count": 200000,
+    "OpsPerSecond": 148799.60383593474,
+    "P50": 320.083,
+    "P99": 2893.959,
+    "P999": 20765.167,
+    "Max": 29863.75
+  },
+  {
+    "Name": "End to end, durability = Group",
+    "Count": 200000,
+    "OpsPerSecond": 20318.094603222507,
+    "P50": 2999.125,
+    "P99": 6041.917,
+    "P999": 30273.958,
+    "Max": 39092.833
+  },
+  {
+    "Name": "End to end, durability = Full",
+    "Count": 3000,
+    "OpsPerSecond": 371.9252382664654,
+    "P50": 189115.667,
+    "P99": 210248.583,
+    "P999": 210256.083,
+    "Max": 210257.167
+  }
+]

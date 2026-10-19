@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+.DS_Store
+python/.venv/
+python/__pycache__/
+data/
+TestResults/

@@ -1,0 +1,21 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet build -c Release
+      - run: dotnet test -c Release --no-build
+      - name: Benchmark (smoke run)
+        run: dotnet run -c Release --no-build --project bench/Tickflow.Bench -- results >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Crash test (3 rounds of kill -9)
+        run: |
+          pip install aiohttp pandas matplotlib
+          cd python && DOTNET=dotnet python crash_test.py --rounds 3

@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{ECCF60A6-925C-48AC-974D-7E4A4E61BD8E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflow.Engine", "src\Tickflow.Engine\Tickflow.Engine.csproj", "{C51195E4-F1CF-4708-B1CB-EA7B068AE96D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflow.Api", "src\Tickflow.Api\Tickflow.Api.csproj", "{BF1AEDD8-256C-423D-A605-D0514C6117A9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{BDB6CD88-0B34-48E5-A238-B906964AEF07}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflow.Tests", "tests\Tickflow.Tests\Tickflow.Tests.csproj", "{C6554CDC-30C0-4204-A213-B323DA82489E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bench", "bench", "{7AC0D6D1-7103-4D90-BA3B-93ECDE7BF01C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflow.Bench", "bench\Tickflow.Bench\Tickflow.Bench.csproj", "{C1655A5C-CFA6-40B4-968F-F1E9BD016BEE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C51195E4-F1CF-4708-B1CB-EA7B068AE96D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C51195E4-F1CF-4708-B1CB-EA7B068AE96D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C51195E4-F1CF-4708-B1CB-EA7B068AE96D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C51195E4-F1CF-4708-B1CB-EA7B068AE96D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF1AEDD8-256C-423D-A605-D0514C6117A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF1AEDD8-256C-423D-A605-D0514C6117A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF1AEDD8-256C-423D-A605-D0514C6117A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF1AEDD8-256C-423D-A605-D0514C6117A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6554CDC-30C0-4204-A213-B323DA82489E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6554CDC-30C0-4204-A213-B323DA82489E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6554CDC-30C0-4204-A213-B323DA82489E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6554CDC-30C0-4204-A213-B323DA82489E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1655A5C-CFA6-40B4-968F-F1E9BD016BEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1655A5C-CFA6-40B4-968F-F1E9BD016BEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1655A5C-CFA6-40B4-968F-F1E9BD016BEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1655A5C-CFA6-40B4-968F-F1E9BD016BEE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C51195E4-F1CF-4708-B1CB-EA7B068AE96D} = {ECCF60A6-925C-48AC-974D-7E4A4E61BD8E}
+		{BF1AEDD8-256C-423D-A605-D0514C6117A9} = {ECCF60A6-925C-48AC-974D-7E4A4E61BD8E}
+		{C6554CDC-30C0-4204-A213-B323DA82489E} = {BDB6CD88-0B34-48E5-A238-B906964AEF07}
+		{C1655A5C-CFA6-40B4-968F-F1E9BD016BEE} = {7AC0D6D1-7103-4D90-BA3B-93ECDE7BF01C}
+	EndGlobalSection
+EndGlobal

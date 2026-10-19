@@ -1,0 +1,21 @@
+{
+  "orders": 50000,
+  "clients": 64,
+  "seconds": 9.52,
+  "orders_per_second": 5253,
+  "latency_us": {
+    "p50": 11575,
+    "p99": 24518,
+    "p99.9": 52448,
+    "max": 64978
+  },
+  "statuses": {
+    "Cancelled": 4,
+    "Resting": 24458,
+    "Filled": 24042,
+    "PartiallyFilledResting": 1496
+  },
+  "trades_executed": 46305,
+  "trades_received_on_websocket": 46305,
+  "durability": "Group"
+}
