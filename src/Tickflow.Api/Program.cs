@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Http.Json;
 using Tickflow.Api;
 using Tickflow.Engine;
 
-var builder = WebApplication.CreateBuilder(args);
+// Content root = the folder holding the dll, so wwwroot and defaults resolve wherever the app is launched from.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 var dataDir = builder.Configuration["Tickflow:DataDir"] ?? Path.Combine(AppContext.BaseDirectory, "data");
@@ -31,6 +32,8 @@ var feed = app.Services.GetRequiredService<TradeFeed>();
 var json = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<JsonOptions>>().Value.SerializerOptions;
 
 app.UseWebSockets();
+app.UseDefaultFiles();   // serves wwwroot/index.html at "/": the live trading screen
+app.UseStaticFiles();
 
 app.MapPost("/orders", async (PlaceOrderRequest req) =>
 {

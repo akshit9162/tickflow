@@ -45,8 +45,16 @@ computed in SQL with window functions. Over 1,000,000 stored trades, one symbol 
 The index pays off on narrow ranges, which is what a dashboard asks for. Over a full day the query reads a
 tenth of the table and the window-function sort dominates, so the index barely matters.
 
-**Tests**: 27 xUnit tests (matching rules, recovery in every durability mode, torn and corrupted logs,
+**Tests**: 28 xUnit tests (matching rules, recovery in every durability mode, torn and corrupted logs,
 idempotent retries, HTTP end to end including a restart, SQL bars and their query plan).
+
+## Live screen
+
+Open `http://127.0.0.1:5077/` while the API runs: order ticket, order book with depth bars, trade tape, price
+chart and SQL VWAP, all live over the WebSocket. Plain JavaScript (`src/Tickflow.Api/wwwroot`), no build step.
+"Simulate a market" sends random orders from the browser.
+
+![Live screen](docs/screenshot.png)
 
 ## How it works
 
@@ -74,7 +82,7 @@ idempotent retries, HTTP end to end including a restart, SQL bars and their quer
 - **Backpressure:** the request queue is bounded (callers wait when it is full); slow WebSocket clients lose
   their oldest messages instead of slowing the engine.
 
-See [DESIGN.md](DESIGN.md) for the reasoning behind each choice and the trade-offs.
+See [DESIGN.md](DESIGN.md) for the reasoning behind each choice, the trade-offs, and the design patterns used (single writer, command, event sourcing, producer–consumer, observer, repository, idempotency key, group commit).
 
 ## API
 
@@ -96,7 +104,7 @@ curl -X POST localhost:5077/orders -H 'content-type: application/json' \
 ## Run it
 
 ```bash
-dotnet test                                                    # 27 tests
+dotnet test                                                    # 28 tests
 dotnet run --project src/Tickflow.Api --urls http://127.0.0.1:5077
 dotnet run -c Release --project bench/Tickflow.Bench -- results   # latency + SQL tables
 

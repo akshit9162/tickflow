@@ -139,4 +139,17 @@ public sealed class ApiTests : IDisposable
         Assert.Contains("ix_trades_symbol_ts", plan);
         Assert.DoesNotContain("SCAN trades", plan);       // no full table scan
     }
+
+    [Fact]
+    public async Task Live_screen_is_served_at_the_root()
+    {
+        await using var server = Server();
+        var http = server.CreateClient();
+
+        var html = await http.GetStringAsync("/");
+        var js = await http.GetAsync("/app.js");
+
+        Assert.Contains("tickflow", html);
+        Assert.Equal(HttpStatusCode.OK, js.StatusCode);
+    }
 }

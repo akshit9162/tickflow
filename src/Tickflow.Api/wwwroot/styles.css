@@ -1,0 +1,72 @@
+:root {
+  --bg: #0b0e14; --panel: #121722; --border: #232a38; --text: #e7ebf2; --muted: #8b95a7;
+  --buy: #2fbf71; --buy-soft: rgba(47, 191, 113, .14); --sell: #f0566b; --sell-soft: rgba(240, 86, 107, .14);
+  --accent: #818cf8; --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, "Segoe UI", Inter, sans-serif; }
+header { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.brand { font-weight: 800; font-size: 18px; } .brand em { color: var(--accent); font-style: normal; }
+.symbol { display: flex; gap: 8px; align-items: center; color: var(--muted); }
+.status { display: flex; gap: 8px; align-items: center; color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #f5b642; }
+.dot.on { background: var(--buy); } .dot.off { background: var(--sell); }
+.health { margin-left: auto; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+
+main { display: grid; gap: 14px; padding: 14px 20px 30px; grid-template-columns: 280px minmax(260px, 340px) 1fr; grid-template-areas: "ticket book chart" "ticket book tape"; }
+.ticket { grid-area: ticket; } .book { grid-area: book; } .chart { grid-area: chart; } .tape { grid-area: tape; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+h2 { margin: 0 0 10px; font-size: 15px; } h2 small { color: var(--muted); font-weight: 400; font-family: var(--mono); margin-left: 6px; }
+h3 { margin: 18px 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+form { display: grid; gap: 10px; }
+label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+input, select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; font: inherit; min-height: 40px; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { min-height: 42px; border: 0; border-radius: 9px; padding: 0 16px; font: 600 14px inherit; cursor: pointer; background: var(--accent); color: #0b0e14; }
+button[disabled] { opacity: .6; cursor: wait; }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sides input { position: absolute; opacity: 0; }
+.sides span { display: block; text-align: center; padding: 9px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600; color: var(--text); cursor: pointer; }
+.sides input:checked + .buy { background: var(--buy-soft); border-color: var(--buy); color: var(--buy); }
+.sides input:checked + .sell { background: var(--sell-soft); border-color: var(--sell); color: var(--sell); }
+.sides input:focus-visible + span { outline: 2px solid var(--accent); }
+.result { min-height: 40px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.result.err { color: var(--sell); }
+
+.mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 180px; overflow: auto; }
+.mine li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; }
+.mine li.empty { color: var(--muted); font-family: inherit; }
+.mine button { min-height: 30px; padding: 0 10px; font-size: 12px; background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
+.sim { display: flex; gap: 10px; align-items: center; } .sim label { flex: 1; grid-template-columns: auto 1fr auto; align-items: center; }
+.sim input[type=range] { padding: 0; min-height: 0; min-width: 0; width: 100%; }
+.sim output { font-family: var(--mono); min-width: 2ch; text-align: right; color: var(--text); }
+
+table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 500; text-align: right; padding: 4px 6px; font-family: inherit; font-size: 11.5px; }
+td { text-align: right; padding: 3px 6px; position: relative; }
+th:first-child, td:first-child { text-align: left; }
+#asks td:first-child { color: var(--sell); } #bids td:first-child { color: var(--buy); }
+.depth { position: absolute; inset: 1px 0; right: 0; z-index: 0; border-radius: 3px; }
+#asks .depth { background: var(--sell-soft); } #bids .depth { background: var(--buy-soft); }
+td span { position: relative; z-index: 1; }
+.mid { text-align: center; font-family: var(--mono); font-size: 18px; padding: 8px 0; border-block: 1px solid var(--border); margin: 6px 0; }
+
+canvas { width: 100%; display: block; }
+.vwap { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-top: 8px; }
+.tape tbody { display: block; max-height: 300px; overflow: auto; }
+.tape thead, .tape tbody tr { display: table; width: 100%; table-layout: fixed; }
+.tape td.Buy { color: var(--buy); } .tape td.Sell { color: var(--sell); }
+.flash { animation: flash .8s ease-out; }
+@keyframes flash { from { background: rgba(129, 140, 248, .25); } to { background: transparent; } }
+
+@media (max-width: 1000px) {
+  main { grid-template-columns: 1fr 1fr; grid-template-areas: "ticket book" "chart chart" "tape tape"; }
+}
+@media (max-width: 640px) {
+  main { grid-template-columns: 1fr; grid-template-areas: "ticket" "book" "chart" "tape"; padding: 12px; }
+  .health { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; } }

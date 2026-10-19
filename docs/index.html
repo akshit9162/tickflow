@@ -59,7 +59,7 @@ pre code{background:none;padding:0;color:inherit}
 footer{padding:36px 0 60px;color:var(--faint);font-size:14px;border-top:1px solid var(--border)}
 @media (max-width:640px){.bar{grid-template-columns:1fr;gap:4px}.hero{padding-top:44px}.gh-label{display:none}}
 </style></head><body>
-<header><div class="wrap"><nav><a class="brand" href="#top">tick<em>flow</em></a><div class="links"><a href="#how">How it works</a><a href="#latency">Latency</a><a href="#durability">Durability</a><a href="#crash">Crash test</a><a href="#sql">SQL</a><a href="#tests">Tests</a><a href="#limits">Limits</a><a href="#run">Run it</a></div>
+<header><div class="wrap"><nav><a class="brand" href="#top">tick<em>flow</em></a><div class="links"><a href="#screen">Live screen</a><a href="#how">How it works</a><a href="#latency">Latency</a><a href="#durability">Durability</a><a href="#crash">Crash test</a><a href="#sql">SQL</a><a href="#tests">Tests</a><a href="#limits">Limits</a><a href="#run">Run it</a></div>
 <button class="btn icon" id="theme" aria-label="Toggle colour theme"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg></button>
 <a class="btn" href="https://github.com/akshit9162/tickflow" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span class="gh-label">GitHub</span></a></nav></div></header>
 <main id="top"><div class="hero"><div class="wrap"><span class="eyebrow"><span class="dot"></span>C# · .NET 8 · ASP.NET Core · Python</span>
@@ -73,6 +73,11 @@ footer{padding:36px 0 60px;color:var(--faint);font-size:14px;border-top:1px soli
 <div class="stat"><b>5.1×</b><span>faster per-minute SQL bars with a (symbol, time) index, over 1M trades</span></div>
 </div></div></div>
 
+<section id="screen"><div class="wrap"><div class="kicker">Front end</div><h2>The live screen</h2>
+<p>Served by the same app at <code>/</code>: an order ticket, the book with depth bars, a trade tape, a price chart and the SQL VWAP, all updating over the WebSocket. Plain JavaScript, no framework. The feed reconnects with exponential backoff, and bursts of trades are throttled to one book refresh per 120 ms.</p>
+<img src="screenshot.png" alt="tickflow live screen: order ticket, order book, price chart and trade tape" style="width:100%;border-radius:14px;border:1px solid var(--border);margin-top:12px">
+</div></section>
+
 <section id="how"><div class="wrap"><div class="kicker">Architecture</div><h2>One thread owns the book</h2>
 <p>Requests queue in a bounded channel. One engine thread takes a batch, writes each command to the log, matches it, makes the whole batch durable with a single <code>fsync</code>, and only then answers every client in it. No locks in matching, and the log order is exactly the execution order.</p>
 <div class="flow"><div class="step"><span class="n">01</span><b>Validate</b><small>bad input never reaches the log</small></div><div class="step"><span class="n">02</span><b>Log</b><small>[length][CRC32][command]</small></div><div class="step"><span class="n">03</span><b>Match</b><small>price-time priority</small></div><div class="step"><span class="n">04</span><b>fsync once</b><small>for the whole batch</small></div><div class="step"><span class="n">05</span><b>Acknowledge</b><small>only after it is durable</small></div><div class="step"><span class="n">06</span><b>Publish</b><small>WebSocket feed + SQL writer</small></div></div>
@@ -80,6 +85,7 @@ footer{padding:36px 0 60px;color:var(--faint);font-size:14px;border-top:1px soli
 <div class="card"><h3>Order book</h3><p>Per symbol: two sorted maps (bids highest-first, asks lowest-first), a FIFO list per price level, and an id index so cancels are O(1) to find. Prices are integer ticks, never floating point.</p></div>
 <div class="card"><h3>Deterministic replay</h3><p>The log stores commands, not trades. Replaying the same commands rebuilds the same book, the same order ids and the same trades, so the log is the single source of truth.</p></div>
 <div class="card"><h3>Idempotent retries</h3><p>Re-sending an order with the same <code>clientOrderId</code> returns the original result instead of trading twice, even after a restart.</p></div>
+<div class="card"><h3>Design patterns</h3><p>Single writer, command, event sourcing of commands, producer–consumer channels, observer (trade sinks), repository (SQL behind one class), idempotency keys, group commit, and retry with exponential backoff on the front end.</p></div>
 <div class="card"><h3>Backpressure</h3><p>The request queue is bounded, so callers wait instead of memory growing. Each WebSocket client has its own bounded queue: a slow client drops its oldest messages and never slows the engine.</p></div>
 </div></div></section>
 
@@ -119,7 +125,7 @@ footer{padding:36px 0 60px;color:var(--faint);font-size:14px;border-top:1px soli
 <p>The Python side turns the same trade store into one-second OHLCV/VWAP bars with pandas, and a load generator drives the HTTP API: 50,000 orders from 64 clients, with the WebSocket subscriber receiving all 46,305 trades.</p>
 </div></section>
 
-<section id="tests"><div class="wrap"><div class="kicker">Tests</div><h2>27 tests, run in CI on every push</h2>
+<section id="tests"><div class="wrap"><div class="kicker">Tests</div><h2>28 tests, run in CI on every push</h2>
 <div class="grid">
 <div class="card"><h3>Matching rules</h3><p>Price and time priority, trades at the maker's price, market-order sweeps, cancels, idempotent retries, and a 20,000-step random test that the book is never left crossed.</p></div>
 <div class="card"><h3>Recovery</h3><p>In every durability mode, replay rebuilds the identical book and identical trades. Torn tails and mid-file corruption are injected into the log.</p></div>
@@ -132,7 +138,7 @@ footer{padding:36px 0 60px;color:var(--faint);font-size:14px;border-top:1px soli
 </div></section>
 
 <section id="run"><div class="wrap"><div class="kicker">Run it</div><h2>Reproduce everything</h2>
-<pre><code>dotnet test                                                     # 27 tests
+<pre><code>dotnet test                                                     # 28 tests
 dotnet run --project src/Tickflow.Api --urls http://127.0.0.1:5077
 dotnet run -c Release --project bench/Tickflow.Bench -- results   # latency + SQL tables
 
@@ -140,7 +146,7 @@ cd python &amp;&amp; uv venv &amp;&amp; uv pip install aiohttp pandas matplotlib
 .venv/bin/python crash_test.py --rounds 10                      # kill -9 test
 .venv/bin/python loadgen.py --orders 50000 --clients 64         # HTTP + WebSocket
 .venv/bin/python etl.py &lt;data-dir&gt;/trades.db                    # OHLCV/VWAP bars</code></pre>
-<div class="tags"><span class="tag">C#</span><span class="tag">.NET 8</span><span class="tag">ASP.NET Core</span><span class="tag">WebSockets</span><span class="tag">SQLite</span><span class="tag">Python</span><span class="tag">pandas</span><span class="tag">xUnit</span><span class="tag">GitHub Actions</span></div>
+<div class="tags"><span class="tag">C#</span><span class="tag">JavaScript</span><span class="tag">.NET 8</span><span class="tag">ASP.NET Core</span><span class="tag">WebSockets</span><span class="tag">SQLite</span><span class="tag">Python</span><span class="tag">pandas</span><span class="tag">xUnit</span><span class="tag">GitHub Actions</span></div>
 </div></section>
 </main>
 <footer><div class="wrap">Akshit Gupta · <a href="https://github.com/akshit9162/tickflow">github.com/akshit9162/tickflow</a></div></footer>

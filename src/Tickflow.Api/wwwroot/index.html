@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tickflow · live</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23818cf8'/><path d='M22 62 L42 42 L58 56 L78 32' stroke='%230b0e14' stroke-width='9' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="brand">tick<em>flow</em></div>
+  <label class="symbol">Symbol
+    <select id="symbol">
+      <option>ACME</option><option>GLOBEX</option><option>INITECH</option>
+    </select>
+  </label>
+  <div class="status"><span id="feed-dot" class="dot"></span><span id="feed-text">connecting…</span></div>
+  <div class="health" id="health"></div>
+</header>
+
+<main>
+  <section class="panel ticket">
+    <h2>Order ticket</h2>
+    <form id="ticket">
+      <div class="sides" role="radiogroup" aria-label="Side">
+        <label><input type="radio" name="side" value="Buy" checked><span class="buy">Buy</span></label>
+        <label><input type="radio" name="side" value="Sell"><span class="sell">Sell</span></label>
+      </div>
+      <label>Type
+        <select name="type"><option>Limit</option><option>Market</option></select>
+      </label>
+      <label>Price
+        <input name="price" type="number" step="0.01" min="0.01" value="100.00" inputmode="decimal">
+      </label>
+      <label>Quantity
+        <input name="quantity" type="number" step="1" min="1" value="10" inputmode="numeric">
+      </label>
+      <button type="submit" id="submit">Place order</button>
+    </form>
+    <p class="result" id="result" role="status" aria-live="polite"></p>
+
+    <h3>My open orders</h3>
+    <ul id="mine" class="mine"><li class="empty">None yet</li></ul>
+
+    <h3>Simulate a market</h3>
+    <p class="hint">Sends random orders around the mid price from this browser, so the screen has something to show.</p>
+    <div class="sim">
+      <button type="button" id="sim">Start</button>
+      <label>Orders/s <input id="rate" type="range" min="1" max="50" value="10"><output id="rate-out">10</output></label>
+    </div>
+  </section>
+
+  <section class="panel book">
+    <h2>Order book <small id="spread"></small></h2>
+    <table aria-label="Asks">
+      <thead><tr><th>Price</th><th>Size</th><th>Orders</th></tr></thead>
+      <tbody id="asks"></tbody>
+    </table>
+    <div class="mid" id="mid">–</div>
+    <table aria-label="Bids">
+      <tbody id="bids"></tbody>
+    </table>
+  </section>
+
+  <section class="panel chart">
+    <h2>Last price <small id="last"></small></h2>
+    <canvas id="chart" height="220" aria-label="Recent trade prices"></canvas>
+    <div class="vwap" id="vwap"></div>
+  </section>
+
+  <section class="panel tape">
+    <h2>Trades <small id="count"></small></h2>
+    <table>
+      <thead><tr><th>Time</th><th>Price</th><th>Qty</th><th>Aggressor</th></tr></thead>
+      <tbody id="trades"></tbody>
+    </table>
+  </section>
+</main>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>

@@ -112,7 +112,28 @@ pre-aggregated minute bars as trades arrive.
   twice.
 - `crash_test.py` does it for real: `kill -9` the process mid-flight, restart, verify every acknowledged order.
 
-## 10. What I would do next
+## 10. Design patterns, and where they are
+
+| Pattern | Where | Why |
+|---|---|---|
+| **Single writer** | `EngineService` loop | One thread mutates the book: no locks, a total order of commands |
+| **Command** | `NewOrder` / `CancelOrder` records | Requests are objects that can be validated, logged, replayed and applied later |
+| **Event sourcing** (of commands) | `WriteAheadLog` + replay | State is rebuilt from the log; SQLite is a projection of it |
+| **Producer–consumer** | `Channel<T>` into the engine, into the SQL writer, per WebSocket client | Decouples callers from the engine and the engine from slow consumers |
+| **Observer** | `ITradeSink` (`TradeStore`, `TradeFeed`); the front end's store `subscribe` | The engine publishes trades without knowing who listens |
+| **Repository** | `TradeStore` | SQL lives behind one class; endpoints never write queries |
+| **Idempotency key** | `clientOrderId` | Safe client retries, including across restarts |
+| **Group commit** | `EngineService.Run` + `WriteAheadLog.Commit` | One fsync amortised over a batch of writes |
+| **Retry with exponential backoff** | `connectFeed` in `wwwroot/app.js` | The live screen reconnects 0.5 s → 8 s without hammering the server |
+
+## 11. The live screen (front end)
+
+`wwwroot/` is served by the same ASP.NET Core app at `/`: an order ticket, the order book with depth bars,
+a live trade tape, a price chart and the SQL VWAP, all updating over the WebSocket. Plain JavaScript, no
+framework or build step. Bursts of trades trigger at most one book request per 120 ms (throttling), and the
+"Simulate a market" button sends random orders from the browser so the screen has activity.
+
+## 12. What I would do next
 
 1. Snapshots of the book every N commands so recovery does not replay from the beginning.
 2. Array-based price levels and pooled `Order` objects to remove the remaining GC pauses (the 153 ms max).
