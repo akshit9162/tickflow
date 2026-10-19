@@ -62,6 +62,13 @@ app.MapGet("/book/{symbol}", async (string symbol, int? depth) =>
 app.MapGet("/trades", async (string? symbol, int? limit) =>
     Results.Ok(await store.RecentAsync(symbol, Math.Clamp(limit ?? 100, 1, 1000))));
 
+app.MapGet("/stats/{symbol}", async (string symbol, int? minutes) =>
+{
+    var to = DateTime.UtcNow.AddSeconds(1);
+    var from = to.AddMinutes(-Math.Clamp(minutes ?? 60, 1, 24 * 60));
+    return Results.Ok(await store.MinuteBarsAsync(symbol, from, to));
+});
+
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "ok",

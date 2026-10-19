@@ -86,6 +86,14 @@ Trades go to SQLite on a background thread in batches (up to 1,000 rows or 20 ms
 never waits for the database. If the process dies with trades still queued, they are not lost: replay
 re-publishes every trade and `INSERT OR IGNORE` on the trade sequence number skips the ones already stored.
 
+**Analytics in SQL.** `/stats/{symbol}` builds per-minute bars in one query: `FIRST_VALUE` window functions
+pick each minute's first and last trade (by sequence number) for open and close; `GROUP BY` gives high, low,
+volume, trade count, VWAP (`SUM(price*qty)/SUM(qty)`) and the buy/sell split. A `(symbol, ts_ticks)` index makes
+the time filter a range scan (a test checks the query plan). Measured over 1M trades: 5.1x faster for the last
+hour, 1.1x for a whole day. *Why so little for a day?* That reads 10% of the table, and the sort for the window
+functions dominates; an index helps selective queries, not bulk reads. The next step would be maintaining
+pre-aggregated minute bars as trades arrive.
+
 ## 8. Backpressure
 
 - The request channel is bounded (65,536); when full, callers wait instead of memory growing until the process

@@ -36,6 +36,7 @@ public sealed class TradeStore : ITradeSink, IAsyncDisposable
                     ts_ticks      INTEGER NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS ix_trades_symbol_seq ON trades (symbol, seq);
+                CREATE INDEX IF NOT EXISTS ix_trades_symbol_ts ON trades (symbol, ts_ticks);
                 """);
         }
         _writer = Task.Run(WriteLoop);
@@ -72,6 +73,73 @@ public sealed class TradeStore : ITradeSink, IAsyncDisposable
                 Prices.ToDecimal(r.GetInt64(4)), r.GetInt64(5), r.GetString(6),
                 new DateTime(r.GetInt64(7), DateTimeKind.Utc)));
         return rows;
+    }
+
+    /// <summary>
+    /// Per-minute bars computed in SQL: open/close come from window functions (first and last trade of the
+    /// minute by sequence number), the rest from GROUP BY. The (symbol, ts_ticks) index turns the time-range
+    /// filter into an index range scan instead of a full table scan.
+    /// </summary>
+    public const string MinuteBarsSql = """
+        WITH t AS (
+            SELECT seq, price_ticks, quantity, aggressor, ts_ticks / 600000000 AS minute   -- 6e8 ticks = 1 min
+            FROM trades
+            WHERE symbol = $symbol AND ts_ticks >= $from AND ts_ticks < $to
+        ),
+        w AS (
+            SELECT minute, price_ticks, quantity, aggressor,
+                   FIRST_VALUE(price_ticks) OVER (PARTITION BY minute ORDER BY seq)      AS open_ticks,
+                   FIRST_VALUE(price_ticks) OVER (PARTITION BY minute ORDER BY seq DESC) AS close_ticks
+            FROM t
+        )
+        SELECT minute,
+               MIN(open_ticks), MAX(price_ticks), MIN(price_ticks), MIN(close_ticks),
+               SUM(quantity), COUNT(*),
+               CAST(SUM(price_ticks * quantity) AS REAL) / SUM(quantity),
+               SUM(CASE WHEN aggressor = 'Buy' THEN quantity ELSE 0 END)
+        FROM w
+        GROUP BY minute
+        ORDER BY minute
+        """;
+
+    public async Task<IReadOnlyList<MinuteBar>> MinuteBarsAsync(string symbol, DateTime from, DateTime to)
+    {
+        await using var db = Open();
+        await using var cmd = db.CreateCommand();
+        cmd.CommandText = MinuteBarsSql;
+        cmd.Parameters.AddWithValue("$symbol", symbol);
+        cmd.Parameters.AddWithValue("$from", from.Ticks);
+        cmd.Parameters.AddWithValue("$to", to.Ticks);
+
+        var bars = new List<MinuteBar>();
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+        {
+            var volume = r.GetInt64(5);
+            var buyVolume = r.GetInt64(8);
+            bars.Add(new MinuteBar(
+                new DateTime(r.GetInt64(0) * TimeSpan.TicksPerMinute, DateTimeKind.Utc),
+                Prices.ToDecimal(r.GetInt64(1)), Prices.ToDecimal(r.GetInt64(2)),
+                Prices.ToDecimal(r.GetInt64(3)), Prices.ToDecimal(r.GetInt64(4)),
+                volume, r.GetInt64(6), Math.Round((decimal)r.GetDouble(7) * Prices.TickSize, 4),
+                buyVolume, volume - buyVolume));
+        }
+        return bars;
+    }
+
+    /// <summary>The query plan for the bars query (used to prove the index is used).</summary>
+    public async Task<string> ExplainMinuteBarsAsync()
+    {
+        await using var db = Open();
+        await using var cmd = db.CreateCommand();
+        cmd.CommandText = "EXPLAIN QUERY PLAN " + MinuteBarsSql;
+        cmd.Parameters.AddWithValue("$symbol", "X");
+        cmd.Parameters.AddWithValue("$from", 0L);
+        cmd.Parameters.AddWithValue("$to", long.MaxValue);
+        var plan = new List<string>();
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync()) plan.Add(r.GetString(3));
+        return string.Join("\n", plan);
     }
 
     public async Task<long> CountAsync()

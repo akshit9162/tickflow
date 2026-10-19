@@ -104,4 +104,39 @@ public sealed class ApiTests : IDisposable
         var retry = await Place(http2, "b1", Side.Buy, 101m, 3);   // a client retrying after the restart
         Assert.True(retry.Duplicate);
     }
+
+    [Fact]
+    public async Task Stats_returns_minute_bars_computed_in_sql()
+    {
+        await using var server = Server();
+        var http = server.CreateClient();
+        await Place(http, "s1", Side.Sell, 100.00m, 10);
+        await Place(http, "s2", Side.Sell, 101.00m, 10);
+        await Place(http, "b1", Side.Buy, 101.00m, 15);   // trades 10 @ 100.00 then 5 @ 101.00
+        await Place(http, "b2", Side.Buy, 99.00m, 4);     // rests
+        await Place(http, "s3", Side.Sell, 99.00m, 4);    // trades 4 @ 99.00, seller is the aggressor
+        await server.Services.GetRequiredService<TradeStore>().FlushAsync();
+
+        var bars = await http.GetFromJsonAsync<List<MinuteBar>>("/stats/ACME?minutes=5", Json);
+
+        var total = bars!.Sum(b => b.Volume);
+        Assert.Equal(19, total);
+        Assert.Equal(3, bars.Sum(b => b.Trades));
+        if (bars.Count == 1)                              // all three trades landed in the same minute
+        {
+            var bar = bars[0];
+            Assert.Equal((100.00m, 101.00m, 99.00m, 99.00m), (bar.Open, bar.High, bar.Low, bar.Close));
+            Assert.Equal(Math.Round((10 * 100.00m + 5 * 101.00m + 4 * 99.00m) / 19, 4), bar.Vwap);
+            Assert.Equal((15L, 4L), (bar.BuyVolume, bar.SellVolume));
+        }
+    }
+
+    [Fact]
+    public async Task Stats_query_uses_the_symbol_time_index()
+    {
+        await using var server = Server();
+        var plan = await server.Services.GetRequiredService<TradeStore>().ExplainMinuteBarsAsync();
+        Assert.Contains("ix_trades_symbol_ts", plan);
+        Assert.DoesNotContain("SCAN trades", plan);       // no full table scan
+    }
 }

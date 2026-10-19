@@ -51,3 +51,7 @@ public sealed record BookResponse(string Symbol, IReadOnlyList<LevelDto> Bids, I
             s.Bids.Select(l => new LevelDto(Prices.ToDecimal(l.Price), l.Quantity, l.Orders)).ToList(),
             s.Asks.Select(l => new LevelDto(Prices.ToDecimal(l.Price), l.Quantity, l.Orders)).ToList());
 }
+
+public sealed record MinuteBar(
+    DateTime Minute, decimal Open, decimal High, decimal Low, decimal Close,
+    long Volume, long Trades, decimal Vwap, long BuyVolume, long SellVolume);

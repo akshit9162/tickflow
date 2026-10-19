@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
+using Tickflow.Api;
 using Tickflow.Engine;
 
 // Latency benchmark.
@@ -26,6 +28,16 @@ Console.WriteLine("|---|---:|---:|---:|---:|---:|---:|");
 foreach (var r in results)
     Console.WriteLine($"| {r.Name} | {r.Count:N0} | {r.OpsPerSecond:N0} | {r.P50:N1} | {r.P99:N1} | {r.P999:N1} | {r.Max:N1} |");
 
+var sql = await SqlStats(trades: 1_000_000, runs: 30);
+Console.WriteLine();
+Console.WriteLine($"SQL minute bars, one symbol, {sql.Trades:N0} trades in the table (p50 of 30 runs):");
+Console.WriteLine("| Range | Bars | With (symbol, ts) index | Without (full scan) | Speed-up |");
+Console.WriteLine("|---|---:|---:|---:|---:|");
+foreach (var w in sql.Windows)
+    Console.WriteLine($"| {w.Range} | {w.Bars:N0} | {w.IndexedMs:N1} ms | {w.ScanMs:N1} ms | {w.ScanMs / w.IndexedMs:N1}x |");
+
+File.WriteAllText(Path.Combine(outDir, "sql.json"),
+    JsonSerializer.Serialize(sql, new JsonSerializerOptions { WriteIndented = true }));
 File.WriteAllText(Path.Combine(outDir, "bench.json"),
     JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
 return;
@@ -81,6 +93,69 @@ static async Task<Result> EndToEnd(Durability mode, int count, int clients)
     }
 }
 
+// 1M synthetic trades over 24 h across 10 symbols; time the per-minute bars query for one symbol with the
+// (symbol, ts_ticks) index, then drop the index and time it again.
+static async Task<SqlResult> SqlStats(int trades, int runs)
+{
+    var dir = Directory.CreateTempSubdirectory("tickflow-sql-").FullName;
+    try
+    {
+        var dbPath = Path.Combine(dir, "trades.db");
+        var store = new TradeStore(dbPath);
+        var rng = new Random(5);
+        var start = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc);
+        var step = TimeSpan.FromDays(1).Ticks / trades;
+        for (var i = 0; i < trades; i++)
+            store.Publish(new Trade(i + 1, $"SYM{i % 10}", i, i, 10_000 + rng.Next(-50, 51), rng.Next(1, 100),
+                rng.Next(2) == 0 ? Side.Buy : Side.Sell, start.Ticks + i * step));
+        await store.FlushAsync(TimeSpan.FromMinutes(5));
+        await store.DisposeAsync();
+
+        var reader = new TradeStore(dbPath);
+        var ranges = new (string Name, DateTime From, DateTime To)[]
+        {
+            ("last 1 hour", start.AddHours(23), start.AddDays(1)),
+            ("full 24 hours", start, start.AddDays(1)),
+        };
+        async Task<(double Ms, int Bars)> Time(DateTime from, DateTime to)
+        {
+            var ms = new List<double>();
+            var bars = 0;
+            for (var r = 0; r < runs; r++)
+            {
+                var t0 = Stopwatch.GetTimestamp();
+                bars = (await reader.MinuteBarsAsync("SYM3", from, to)).Count;
+                ms.Add(Stopwatch.GetElapsedTime(t0).TotalMilliseconds);
+            }
+            ms.Sort();
+            return (ms[ms.Count / 2], bars);
+        }
+
+        var indexed = new List<(double Ms, int Bars)>();
+        foreach (var (_, from, to) in ranges) indexed.Add(await Time(from, to));
+        await using (var db = new SqliteConnection($"Data Source={dbPath};Pooling=False"))
+        {
+            db.Open();
+            using var cmd = db.CreateCommand();
+            cmd.CommandText = "DROP INDEX ix_trades_symbol_ts; DROP INDEX ix_trades_symbol_seq;";
+            cmd.ExecuteNonQuery();
+        }
+        var windows = new List<SqlWindow>();
+        for (var k = 0; k < ranges.Length; k++)
+        {
+            var scan = await Time(ranges[k].From, ranges[k].To);
+            windows.Add(new SqlWindow(ranges[k].Name, indexed[k].Bars, indexed[k].Ms, scan.Ms));
+        }
+        await reader.DisposeAsync();
+        return new SqlResult(trades, windows);
+    }
+    finally
+    {
+        SqliteConnection.ClearAllPools();
+        Directory.Delete(dir, recursive: true);
+    }
+}
+
 static string RuntimeOsName() => System.Runtime.InteropServices.RuntimeInformation.OSDescription;
 
 /// <summary>Realistic-ish flow around a drifting mid price: 70% limits near mid, 10% market, 20% cancels.</summary>
@@ -127,3 +202,6 @@ sealed record Result(string Name, int Count, double OpsPerSecond, double P50, do
         return r;
     }
 }
+
+sealed record SqlWindow(string Range, int Bars, double IndexedMs, double ScanMs);
+sealed record SqlResult(int Trades, List<SqlWindow> Windows);

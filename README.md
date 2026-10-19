@@ -34,8 +34,19 @@ then restart and re-send every acknowledged order. **43,808 acknowledged orders,
 5,253 orders/s, p50 11.6 ms; the WebSocket subscriber received all 46,305 trades. The single-process Python
 client is the bottleneck here, not the server.
 
-**Tests**: 25 xUnit tests (matching rules, recovery in every durability mode, torn and corrupted logs,
-idempotent retries, HTTP end to end including a restart).
+**SQL analytics** (`GET /stats/{symbol}`): per-minute open/high/low/close, volume, VWAP and buy/sell volume,
+computed in SQL with window functions. Over 1,000,000 stored trades, one symbol (p50 of 30 runs):
+
+| Range | Bars | With (symbol, time) index | Without | |
+|---|---:|---:|---:|---:|
+| Last 1 hour | 60 | 16.3 ms | 82.2 ms | 5.1× faster |
+| Full 24 hours | 1,440 | 410.9 ms | 433.6 ms | 1.1× |
+
+The index pays off on narrow ranges, which is what a dashboard asks for. Over a full day the query reads a
+tenth of the table and the window-function sort dominates, so the index barely matters.
+
+**Tests**: 27 xUnit tests (matching rules, recovery in every durability mode, torn and corrupted logs,
+idempotent retries, HTTP end to end including a restart, SQL bars and their query plan).
 
 ## How it works
 
@@ -73,6 +84,7 @@ See [DESIGN.md](DESIGN.md) for the reasoning behind each choice and the trade-of
 | DELETE | `/orders/{symbol}/{orderId}` | cancel; 404 if not resting |
 | GET | `/book/{symbol}?depth=10` | aggregated price levels |
 | GET | `/trades?symbol=&limit=100` | recent trades from SQLite |
+| GET | `/stats/{symbol}?minutes=60` | per-minute OHLC, volume, VWAP, buy/sell volume (SQL window functions) |
 | GET | `/health` | durability mode, log size, recovery info |
 | WS | `/ws/trades?symbol=` | live trades as JSON |
 
@@ -84,9 +96,9 @@ curl -X POST localhost:5077/orders -H 'content-type: application/json' \
 ## Run it
 
 ```bash
-dotnet test                                                    # 25 tests
+dotnet test                                                    # 27 tests
 dotnet run --project src/Tickflow.Api --urls http://127.0.0.1:5077
-dotnet run -c Release --project bench/Tickflow.Bench -- results   # latency table
+dotnet run -c Release --project bench/Tickflow.Bench -- results   # latency + SQL tables
 
 cd python && uv venv && uv pip install aiohttp pandas matplotlib
 .venv/bin/python crash_test.py --rounds 10                     # kill -9 test

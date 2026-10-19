@@ -1,0 +1,17 @@
+{
+  "Trades": 1000000,
+  "Windows": [
+    {
+      "Range": "last 1 hour",
+      "Bars": 60,
+      "IndexedMs": 16.2611,
+      "ScanMs": 82.1565
+    },
+    {
+      "Range": "full 24 hours",
+      "Bars": 1440,
+      "IndexedMs": 410.9425,
+      "ScanMs": 433.6098
+    }
+  ]
+}

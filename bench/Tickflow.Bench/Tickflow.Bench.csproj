@@ -2,6 +2,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Tickflow.Engine\Tickflow.Engine.csproj" />
+    <ProjectReference Include="..\..\src\Tickflow.Api\Tickflow.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
   </ItemGroup>
 
   <PropertyGroup>
