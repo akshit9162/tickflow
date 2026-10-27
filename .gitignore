@@ -7,3 +7,5 @@ python/.venv/
 python/__pycache__/
 data/
 TestResults/
+.impeccable/
+.hallmark/
